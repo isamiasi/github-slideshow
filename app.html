@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nguyễn Minh Hạ Studio</title>
+  <style>
+    :root{--bg:#08090c;--panel:#11131a;--line:#2a2f3d;--text:#e8ecf1;--muted:#a5adbb;--accent:#91a4c6;--ok:#8bc5a3}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at 20% 10%,#1a1f2d 0,#08090c 40%);color:var(--text);font-family:Inter,"Hiragino Kaku Gothic ProN",sans-serif}
+    .wrap{max-width:1280px;margin:0 auto;padding:24px}
+    h1{font-size:28px;margin:0} h2{font-size:14px;color:var(--muted);font-weight:500;margin:8px 0 22px}
+    .grid{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:16px}
+    .card{background:rgba(17,19,26,.9);border:1px solid var(--line);border-radius:14px;padding:16px;min-height:320px}
+    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+    input,select,textarea{width:100%;background:#0c0f16;border:1px solid #333a4e;color:#eaf0fb;padding:10px;border-radius:8px}
+    textarea{min-height:90px;resize:vertical}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    button{flex:1;min-width:130px;margin-top:14px;padding:12px;border:0;border-radius:8px;background:linear-gradient(90deg,#5f7298,#4e5f82);color:white;font-weight:600;cursor:pointer}
+    button.secondary{background:#2a3142}.badge{font-size:11px;color:var(--ok);margin-top:8px}
+    .out h3{font-size:13px;color:#c2ccdd;margin:14px 0 4px}.out p, .out pre{margin:0;color:#f2f5fb;white-space:pre-wrap;line-height:1.55}
+    .history{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:8px}
+    .history-item{padding:8px;border-bottom:1px solid #242a37;cursor:pointer}.history-item:last-child{border-bottom:none}
+    .history-item small{display:block;color:var(--muted)}
+    @media (max-width:980px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Nguyễn Minh Hạ Studio</h1>
+    <h2>Emotional Story Music Generator — cinematic / minimal / restrained</h2>
+    <section class="grid">
+      <article class="card">
+        <h3>感情設定</h3>
+        <label>感情</label>
+        <select id="emotion"><option>孤独</option><option>郷愁</option><option>希望</option><option>不安</option><option>再生</option><option>誘惑</option></select>
+        <label>主人公</label><input id="protagonist" value="来日5年目のベトナム人技能実習生"/>
+        <label>テーマ</label><input id="theme" value="夜勤明け、駅前で立ち止まる"/>
+        <label>禁止ワード(任意・カンマ区切り)</label><input id="banned" value="キラキラ,バズる,最強"/>
+      </article>
+      <article class="card">
+        <h3>シーン入力</h3>
+        <label>時間帯</label><input id="time" value="深夜2時"/>
+        <label>場所</label><input id="place" value="埼玉の小さな工業地帯"/>
+        <label>状況</label>
+        <textarea id="situation">工場のサイレンが止み、彼は自販機の白い光の前で家族の写真を見返している。</textarea>
+        <div class="row">
+          <button id="generate">シーンを生成</button>
+          <button id="save" class="secondary">保存</button>
+          <button id="export" class="secondary">JSON出力</button>
+        </div>
+        <p class="badge" id="status"></p>
+      </article>
+      <article class="card out">
+        <h3>タイトル</h3><p id="title"></p>
+        <h3>3行詩</h3><pre id="poem"></pre>
+        <h3>Suno Prompt</h3><pre id="suno"></pre>
+        <h3>ImageFX Prompt</h3><pre id="image"></pre>
+        <h3>Shorts Script (15–30s)</h3><pre id="shorts"></pre>
+        <h3>YouTubeタイトル案</h3><p id="yt"></p>
+        <h3>履歴（最新10件）</h3><div class="history" id="history"></div>
+      </article>
+    </section>
+  </main>
+<script>
+const toneMap={孤独:"薄い蛍光灯の下に残る呼吸",郷愁:"遠い雨音が運ぶ記憶",希望:"夜明け前の歩道に滲む光",不安:"静かな機械音の奥のざわめき",再生:"冷えた手に戻る体温",誘惑:"振り返りたくなる街の気配"};
+const NG_CORE=["EDM","hyperpop","aggressive beat","バズ","テンアゲ"];
+function sanitize(text,banned){
+  return banned.reduce((acc,w)=>acc.replaceAll(w,"…"),text);
+}
+function build(){
+  const emotion=emotionEl.value,p=protagonist.value,t=time.value,pl=place.value,s=situation.value,th=theme.value;
+  const banned=[...NG_CORE,...bannedEl.value.split(',').map(v=>v.trim()).filter(Boolean)];
+  const raw={
+    title:`${th}｜${pl}、${t}の改札前`,
+    poem:`${toneMap[emotion]}\n${th}の気配を、ポケットの硬貨が数えている\n列車の風だけが、名前を呼ばずに通り過ぎた`,
+    suno:`Vietnamese emotional atmosphere, cinematic, restrained emotion, ambient, soft piano, industrial ambience. Slow tempo, sparse arrangement, intimate texture. Avoid hyperpop, EDM, aggressive beat.`,
+    image:`realistic photo, cinematic lighting, Japanese night scenery, Vietnamese worker, subtle melancholy, ${pl}, ${t}, muted colors, documentary still, shallow depth of field`,
+    shorts:`0-3s: 字幕「${toneMap[emotion]}」\n3-10s: ${p}。${s}\n10-15s: ${th}。電車の残響と黒画面。タイトル「${th}｜${pl}、${t}の改札前」`,
+    yt:`【${emotion}の夜】${th}｜${p}が${pl}で見た小さな光`
+  };
+  const output=Object.fromEntries(Object.entries(raw).map(([k,v])=>[k,sanitize(v,banned)]));
+  title.textContent=output.title;poem.textContent=output.poem;suno.textContent=output.suno;image.textContent=output.image;shorts.textContent=output.shorts;yt.textContent=output.yt;
+  status.textContent=`生成完了: ${new Date().toLocaleString('ja-JP')}`;
+  return {emotion,protagonist:p,time:t,place:pl,situation:s,theme:th,created_at:new Date().toISOString(),...output};
+}
+function getHistory(){return JSON.parse(localStorage.getItem('nmh_works')||'[]')}
+function setHistory(list){localStorage.setItem('nmh_works',JSON.stringify(list.slice(0,10)))}
+function renderHistory(){
+  const list=getHistory();historyEl.innerHTML=list.length?"":"<small>まだ保存されていません</small>";
+  list.forEach((w,i)=>{const d=document.createElement('div');d.className='history-item';d.innerHTML=`${w.title}<small>${w.emotion} / ${new Date(w.created_at).toLocaleString('ja-JP')}</small>`;d.onclick=()=>loadWork(i);historyEl.appendChild(d);});
+}
+function saveCurrent(){const work=build();const list=[work,...getHistory()];setHistory(list);status.textContent='保存しました';renderHistory()}
+function loadWork(i){const w=getHistory()[i];if(!w)return;emotionEl.value=w.emotion;protagonist.value=w.protagonist;time.value=w.time;place.value=w.place;situation.value=w.situation;theme.value=w.theme;title.textContent=w.title;poem.textContent=w.poem;suno.textContent=w.suno;image.textContent=w.image;shorts.textContent=w.shorts;yt.textContent=w.yt;status.textContent='履歴を読み込みました';}
+function exportJson(){const work=build();const blob=new Blob([JSON.stringify(work,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`work-${Date.now()}.json`;a.click();URL.revokeObjectURL(a.href);status.textContent='JSONを出力しました';}
+const emotionEl=document.getElementById('emotion'),protagonist=document.getElementById('protagonist'),time=document.getElementById('time'),place=document.getElementById('place'),situation=document.getElementById('situation'),theme=document.getElementById('theme'),bannedEl=document.getElementById('banned');
+const title=document.getElementById('title'),poem=document.getElementById('poem'),suno=document.getElementById('suno'),image=document.getElementById('image'),shorts=document.getElementById('shorts'),yt=document.getElementById('yt'),status=document.getElementById('status'),historyEl=document.getElementById('history');
+document.getElementById('generate').addEventListener('click',build);document.getElementById('save').addEventListener('click',saveCurrent);document.getElementById('export').addEventListener('click',exportJson);
+build();renderHistory();
+</script>
+</body>
+</html>
